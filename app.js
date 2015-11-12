@@ -70,10 +70,41 @@ var session = require('express-session')
 
 app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 60000 }}))
 
-app.use(function(req, res, next){
-  next()
-})
+//policies section
+  var policies = require('./config/policies.js')
+  var controllers = Object.keys(policies)
+  var policyFiles = fs.readdirSync('./api/policies')
+  var policyResults = []
 
+  policyFiles.forEach(function(file, key){
+    file = file.replace('.js', '')
+    policyFiles[key] = file
+  })
+  
+  controllers.forEach(function(controller){
+    var functions = Object.keys(policies[controller])
+
+    functions.forEach(function(name){
+
+      var value = policies[controller][name]
+      var obj = {}
+
+      if(typeof(value) === "boolean"){
+
+        if(value) obj = {run:true, controller:controller, index: name}
+        else obj = {run:false, controller:controller, index: name}
+
+      }else{
+
+        var func = require('./api/policies/'+value+'.js')
+        if(policyFiles.contains(value)) obj = {run:true, controller:controller, index: name, func: func}
+      }
+
+      policyResults.push(obj)
+    })
+  })
+
+//end
 orm.initialize(config, function(err, models) {
   if(err) throw err;
 
@@ -108,7 +139,7 @@ orm.initialize(config, function(err, models) {
   app.use(methodOverride('X-HTTP-Method-Override'));
 
   //make express know about the routes
-  routes.init(app)
+  routes.init(app, policyResults)
 
   new bootstrap.bootstrap(function(){
     //module.exports = app;

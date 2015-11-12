@@ -1,7 +1,7 @@
 var routes = require('../routes.js');
 
 module.exports = {
-	init:function(app){
+	init:function(app, policies){
 
 		//loop thru routes
 		Object.keys(routes).forEach(function(route){
@@ -27,7 +27,43 @@ module.exports = {
 			    //Check if we got a contrller and said controller has said action
 			    if(controllerObj && controllerObj[action]){
 			    	//bind route
-			    	app[method](url, controllerObj[action])
+
+			    	var wasFound = false
+			    	var hasFunc = function(req, res, next){
+			    		
+			    		if(req.isAuthenticated) return next()
+			    		else {
+			    			req.isAuthenticated = function(){
+			    				return false
+			    			}
+			    		}
+
+			    		return next()
+			    	}
+
+			    	for(var i = 0; i < policies.length; i++){
+
+			    		if(policies[i].controller === controller && policies[i].index === action){
+			    			wasFound = true
+
+			    			if(!policies[i].run){
+
+			    				var notRunFunc = function(req, res, next){
+			    					return res.status(404).end()
+			    				}
+
+			    				app[method](url, hasFunc, notRunFunc, controllerObj[action])
+			    			}else{
+
+			    				if(policies[i].func) app[method](url, hasFunc, policies[i].func, controllerObj[action])
+			    				else app[method](url, hasFunc, controllerObj[action])
+			    			}
+
+			    			break
+			    		}
+			    	}
+
+			    	if(!wasFound) app[method](url, hasFunc, controllerObj[action])
 			    }
 		  	}
 		})
