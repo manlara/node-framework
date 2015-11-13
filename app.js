@@ -146,7 +146,7 @@ orm.initialize(config, function(err, models) {
   app.use(methodOverride('X-HTTP-Method-Override'));
   app.use(passport.initialize());
   app.use(passport.session());
-  app.use(app.router);
+  //app.use(app.router);
 
   //make express know about the routes
   routes.init(app, policyResults)
@@ -181,7 +181,7 @@ orm.initialize(config, function(err, models) {
       //     done(err, user);
       //   });
       // });
-      
+
     //end
 
 
