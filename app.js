@@ -9,6 +9,9 @@ var methodOverride = require('method-override'); // lets you use PUT and DELETE
 var bodyParser = require('body-parser'); //send variables to server
 var Waterline = require('waterline')
 
+var passport = require('passport')
+      , LocalStrategy = require('passport-local').Strategy;
+
 //used to read directries or files
 var fs = require('fs');
 
@@ -104,6 +107,10 @@ app.use(session({ secret: 'keyboard cat', cookie: { maxAge: 60000 }}))
     })
   })
 
+
+
+
+
 //end
 orm.initialize(config, function(err, models) {
   if(err) throw err;
@@ -137,11 +144,35 @@ orm.initialize(config, function(err, models) {
   app.use(cookieParser());
   app.use(express.static(path.join(__dirname, 'public')));
   app.use(methodOverride('X-HTTP-Method-Override'));
+  app.use(passport.initialize());
+  app.use(passport.session());
+  app.use(app.router);
 
   //make express know about the routes
   routes.init(app, policyResults)
 
   new bootstrap.bootstrap(function(){
+
+    //passport section
+      
+
+      passport.use(new LocalStrategy(
+        function(username, password, done) {
+          User.findOne({ username: username }, function (err, user) {
+            if (err) { return done(err); }
+            if (!user) {
+              return done(null, false, { message: 'Incorrect username.' });
+            }
+            if (!user.validPassword(password)) {
+              return done(null, false, { message: 'Incorrect password.' });
+            }
+            return done(null, user);
+          });
+        }
+      ));
+    //end
+
+
     //module.exports = app;
     var server = app.listen(process.env.PORT || 1338, function(){
       //server.setMaxListeners(0);
