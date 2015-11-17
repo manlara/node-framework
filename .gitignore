@@ -27,6 +27,10 @@ nbproject
 .idea
 
 README.md
+config/bootstrap.js
+config/routes.js
+config/policies.js
+config/db.js
 
 ########################
 # controllers
