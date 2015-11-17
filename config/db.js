@@ -8,21 +8,21 @@
 
 module.exports = {
 	mongo : {
-     	adapter: 'mongo',
- 	    host: 'localhost',
- 	    user:'',
-	   	password:'',
-		port:27017,
-        database: 'test-db'
-    },
+   	adapter: 'mongo',
+	    host: 'localhost',
+	    user:'',
+   	password:'',
+	  port:27017,
+    database: 'test-db'
+  },
 
-    config : {
-    	adapters: {
-    		'default': require('sails-mongo'),
-     		mongo: require('sails-mongo'),
-  		},
-  		defaults: {
-    		migrate: 'safe'
-  		}
-    }
+  config : {
+  	adapters: {
+  		'default': require('sails-mongo'),
+   		mongo: require('sails-mongo'),
+		},
+		defaults: {
+  		migrate: 'safe'
+		}
+  }
 }

@@ -1,35 +1,30 @@
 require('./config/protos')
 
 var express = require('express')
+var app = express();
 var path = require('path')
+var _$ = {app : app, express : express}
 
 global.ROOT = __dirname
 global._ = require('lodash')
 global.async = require('async')
 global.log = require('./lib/logger.js').init()
 
-var app = express();
-var session = require('express-session')
+var viewPath = path.join(__dirname, 'api/views')
+var partialsPath = viewPath
+var handlebars  = require('express-handlebars');
+var settings = require('./config/settings.js')
 
-app.use(session({ secret: 'keyboard cat', resave: false, saveUninitialized: true, cookie: { maxAge: 60000, /*secure: true*/ }}))
-app.set('views', path.join(__dirname, 'api/views'));
-app.set('view engine', 'ejs');
-app.use( require('body-parser').json() );   
+_$.app.set('views', viewPath);
+_$.app.set('view engine', 'ejs');
+_$.app.engine('ejs', handlebars({extname: '.ejs', layoutsDir : viewPath, partialsDir : partialsPath, defaultLayout: 'layout'}));
+_$.app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(require('body-parser').urlencoded({     
-  extended: true
-})); 
+/**
+* Middleware setup
+*/
 
-app.use(require('cookie-parser')());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(require('method-override')('X-HTTP-Method-Override'));
-
-var passport = require('passport')
-var LocalStrategy = require('passport-local').Strategy
-
-app.use(passport.initialize());
-app.use(passport.session());
-app.use(express.Router());
+require('./lib/middleware.js').init(_$)
 
 /**
 * Policies Setup
@@ -50,7 +45,7 @@ Object.keys(consts).forEach(function(key){
 * Services Setup
 */
 
-var services = require('./config/custom/services.js').init()
+var services = require('./lib/services.js').init()
 Object.keys(services).forEach(function(index){
   global[index] = appServices[index]
 }) 
@@ -59,7 +54,7 @@ Object.keys(services).forEach(function(index){
 * Routes Setup
 */
 
-require('./config/custom/routes.js').init(app, policies)
+require('./lib/routes.js').init(_$.app, policies)
 
 /**
 * Models Setup
@@ -67,7 +62,7 @@ require('./config/custom/routes.js').init(app, policies)
 
 var Waterline = require('waterline')
 var orm = new Waterline()
-orm = require('./config/custom/models.js').init(Waterline, orm)
+orm = require('./lib/models.js').init(Waterline, orm)
 
 /**
 * DB Setup
@@ -81,7 +76,6 @@ Object.keys(db).forEach(function(key){
   if(key !== 'config') waterlineConfig.connections[key] = db[key]
 })
 
-
 orm.initialize(waterlineConfig, function(err, models) {
   if(err) throw err;
 
@@ -92,13 +86,16 @@ orm.initialize(waterlineConfig, function(err, models) {
   */
 
   global.$ = require('./api/repositories/RepositoryCollection.js').init()
+  global._$ = _$
 
+  //_$.globals = global
   require('./config/bootstrap.js').bootstrap(function(){
-    var server = app.listen(process.env.PORT || PORT || 1338, function(){
+    var server =  global._$.app.listen(process.env.PORT || PORT || 1338, function(){
+    
       //server.setMaxListeners(0);
-      
+      global._$.server = server
       var host = 'localhost'
-      var port = server.address().port
+      var port = global._$.server.address().port
 
       console.log('listening at http://%s:%s', host, port)
     })

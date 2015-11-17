@@ -1,5 +1,6 @@
 module.exports = {
 	IndexController:{
-		index:true
+		index : true,
+		yo : 'authenticated'
 	}
 }
