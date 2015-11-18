@@ -3,7 +3,9 @@ require('./config/protos')
 var express = require('express')
 var app = express();
 var path = require('path')
+
 var _$ = {app : app, express : express}
+global._$ = _$
 
 global.ROOT = __dirname
 global._ = require('lodash')
@@ -14,17 +16,39 @@ var viewPath = path.join(__dirname, 'api/views')
 var partialsPath = viewPath
 var handlebars  = require('express-handlebars');
 var settings = require('./config/settings.js')
+var engine = handlebars.create({
+
+  extname: '.ejs', 
+  layoutsDir : viewPath, 
+  partialsDir : partialsPath, 
+  defaultLayout: 'layout',
+
+})
 
 _$.app.set('views', viewPath);
+//_$.app.engine('ejs', engine.engine);
 _$.app.set('view engine', 'ejs');
-_$.app.engine('ejs', handlebars({extname: '.ejs', layoutsDir : viewPath, partialsDir : partialsPath, defaultLayout: 'layout'}));
+_$.app.set('view options', { layout:'layout.ejs' });
+
+console.log(_$.app.locals.settings['view options'])
+//_$.app.engine('ejs', engine.engine);
+
 _$.app.use(express.static(path.join(__dirname, 'public')));
+
+_$.engine = engine
+
 
 /**
 * Middleware setup
 */
 
 require('./lib/middleware.js').init(_$)
+
+/**
+* Helpers setup
+*/
+
+_$.helpers = require('./lib/helpers.js').init()
 
 /**
 * Policies Setup
@@ -54,7 +78,8 @@ Object.keys(services).forEach(function(index){
 * Routes Setup
 */
 
-require('./lib/routes.js').init(_$.app, policies)
+_$.routes = require(ROOT+'/config/routes.js');
+require('./lib/routes.js').init(_$.app, policies, _$.engine)
 
 /**
 * Models Setup
@@ -86,14 +111,14 @@ orm.initialize(waterlineConfig, function(err, models) {
   */
 
   global.$ = require('./api/repositories/RepositoryCollection.js').init()
-  global._$ = _$
+
 
   //_$.globals = global
   require('./config/bootstrap.js').bootstrap(function(){
     var server =  global._$.app.listen(process.env.PORT || PORT || 1338, function(){
     
       //server.setMaxListeners(0);
-      global._$.server = server
+      _$.server = server
       var host = 'localhost'
       var port = global._$.server.address().port
 
